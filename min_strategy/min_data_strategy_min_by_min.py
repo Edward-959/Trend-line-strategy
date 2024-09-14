@@ -1,31 +1,11 @@
-"""
 
-20210830:
-1.通过向上向下趋势线gradient绝对值判断趋势方向
-2.15分钟rsi>80,1分钟<20策略
-3.建立一整套体系,包括趋势判断、持仓中监控等等
-
-20210904:
-1.不同的趋势，不同的开仓位置、不同的回撤点，对应不同的平仓方式，现在的三类平仓太简单。
-趋势有加速、减速、匀速等，如果发现开仓的时刻趋势之前有所加速，就要快平仓，因为不可持续
-同样，显著降速的趋势也要快速平仓，不可以将敞口放大。
-只有匀速的趋势能保持长久。
-
-整个波段在前低上方、下方的比例
-波段的涨幅、涨速
-触及不同均线的速度
-
-20210913:
-靠连续上涨/下跌形态以及上涨下跌的速度来判断开平仓点
-用alpha因子做因子模型
-
-"""
 
 import pickle
 from min_strategy.TrendLine import TrendLineManagement
 import pandas as pd
 from min_strategy.Trend_Recongnize import TrendManagement
 from min_strategy.TradeManagement import TradeManangement
+from min_strategy.Plot import Plot
 from min_strategy.excel_write import excel_write
 from min_strategy.util import round_
 from min_strategy.BoardPoint import BoardPoint
@@ -162,34 +142,34 @@ class MinDataStrategy:
     def open_short_strategy(self, trend_management, iloc):
         open_bool = 0
         open_price = 0
-        # if len(board_point.board_point['cross_direc']) >= 2:
-        #     last_low = board_point.board_point['max_min_price'][-2]
-        #     last_high = board_point.board_point['max_min_price'][-1]
-        #     if board_point.board_point['cross_direc'][-1] == -1 and (self.__min_data['close'][iloc] < last_low) and (self.__min_data['open'][iloc] > last_low) \
-        #             and abs(self.__min_data['real_body'][iloc]) > 0.3 * (last_high - last_low) and (last_high - last_low) > 12 * jump:
-        #             open_bool = 1
-        #             open_price = self.__min_data['close'][iloc]
-        #             self.__stop_loss_price_short = round(0.5*(last_high - last_low) + last_low, self.__round_num)
-        # up_trend = trend_management.get_last_up_trend()
-        # down_trend = trend_management.get_last_down_trend()
-        # if down_trend is not None and iloc-1 > down_trend.trend_start_daily_index and board_point.board_point['cross_direc'][-1] == -1:
-        #     cross_daily_iloc = self.iloc_to_daily_iloc(board_point.board_point['cross_iloc'][-1], self.__min_data)
-        #     if iloc > cross_daily_iloc:
-        #         high_low_inter_wave = min(self.__min_data['low'][cross_daily_iloc:iloc])
-        #     else:
-        #         high_low_inter_wave = self.__min_data['low'][iloc]
-        #     chg_inter_wave = high_low_inter_wave - board_point.board_point['max_min_price'][-1]
-        #     max_chg = down_trend.max_chg(self.__min_data)
-        #     # and down_trend.wave_num <= 3 \
-        #     #     and abs(self.__min_data['close'][iloc] - down_trend.trend_last_high_low) < 0.2 * abs(max_chg) \
-        #     #     and 0.2 * abs(chg_inter_wave) < abs((self.__min_data['close'][iloc] - high_low_inter_wave)) < 0.4 * abs(chg_inter_wave) \
-        #     if self.__min_data['high'][iloc] >= self.__min_data['ma20'][iloc] and (self.__min_data['close'][iloc] <= self.__min_data['ma20'][iloc])\
-        #         and down_trend.in_trend == 1 and down_trend.trend_pause == 0 and (up_trend is None or (up_trend is not None and up_trend.in_trend == 0))\
-        #             and self.__min_data['real_body'][iloc] >= -3*jump:
-        #             open_bool = 1
-        #             open_price = self.__min_data['close'][iloc]
-        #             self.__stop_loss_price_short = board_point.board_point['max_min_price'][-1]
-        #             self.__open_short_cross_iloc = board_point.board_point['cross_direc'][-1]
+        if len(board_point.board_point['cross_direc']) >= 2:
+            last_low = board_point.board_point['max_min_price'][-2]
+            last_high = board_point.board_point['max_min_price'][-1]
+            if board_point.board_point['cross_direc'][-1] == -1 and (self.__min_data['close'][iloc] < last_low) and (self.__min_data['open'][iloc] > last_low) \
+                    and abs(self.__min_data['real_body'][iloc]) > 0.3 * (last_high - last_low) and (last_high - last_low) > 12 * jump:
+                    open_bool = 1
+                    open_price = self.__min_data['close'][iloc]
+                    self.__stop_loss_price_short = round(0.5*(last_high - last_low) + last_low, self.__round_num)
+        up_trend = trend_management.get_last_up_trend()
+        down_trend = trend_management.get_last_down_trend()
+        if down_trend is not None and iloc-1 > down_trend.trend_start_daily_index and board_point.board_point['cross_direc'][-1] == -1:
+            cross_daily_iloc = self.iloc_to_daily_iloc(board_point.board_point['cross_iloc'][-1], self.__min_data)
+            if iloc > cross_daily_iloc:
+                high_low_inter_wave = min(self.__min_data['low'][cross_daily_iloc:iloc])
+            else:
+                high_low_inter_wave = self.__min_data['low'][iloc]
+            chg_inter_wave = high_low_inter_wave - board_point.board_point['max_min_price'][-1]
+            max_chg = down_trend.max_chg(self.__min_data)
+            # and down_trend.wave_num <= 3 \
+            #     and abs(self.__min_data['close'][iloc] - down_trend.trend_last_high_low) < 0.2 * abs(max_chg) \
+            #     and 0.2 * abs(chg_inter_wave) < abs((self.__min_data['close'][iloc] - high_low_inter_wave)) < 0.4 * abs(chg_inter_wave) \
+            if self.__min_data['high'][iloc] >= self.__min_data['ma20'][iloc] and (self.__min_data['close'][iloc] <= self.__min_data['ma20'][iloc])\
+                and down_trend.in_trend == 1 and down_trend.trend_pause == 0 and (up_trend is None or (up_trend is not None and up_trend.in_trend == 0))\
+                    and self.__min_data['real_body'][iloc] >= -3*jump:
+                    open_bool = 1
+                    open_price = self.__min_data['close'][iloc]
+                    self.__stop_loss_price_short = board_point.board_point['max_min_price'][-1]
+                    self.__open_short_cross_iloc = board_point.board_point['cross_direc'][-1]
         return open_bool, open_price
 
     def close_long_strategy(self, trend_management, trade_management: TradeManangement, iloc):
@@ -330,9 +310,8 @@ class MinDataStrategy:
             close_num, direction, close_price = self.close_strategy(i, trade_management, trend_management)
         trade_management.trade_management(self.__min_data.iloc[i, :], open_bool, close_num, direction, self.new_day(list(self.__min_data.index)[i]), datetime, close_price, open_price)
 
-    def main_calculate(self, trade_management_, board_point_):
+    def main_calculate(self, trade_management_, board_point_, plot, trend_management):
         index_list = list(self.__min_data.index)
-        trend_management = TrendManagement()
         for i in range(0, self.__min_data.shape[0]):
             datetime = list(self.__min_data.index)[i]
             print(datetime)
@@ -350,7 +329,7 @@ class MinDataStrategy:
                         board_point_.set_board_point(-1, self.__min_data['iloc'][i], self.__min_data)
 
                 self.open_close_model(trade_management_, trend_management, i)
-            trend_management.trend_initial(self.__min_data, board_point.board_point, i)
+            trend_management.trend_initial(self.__min_data, board_point.board_point, i, plot)
             trend_management.in_trend(self.__min_data, board_point.board_point, i)
             self.set_daily_high_low(i)
             self.continuous_up_down(i)
@@ -362,7 +341,7 @@ if __name__ == '__main__':
     end_date = "2023-12-01"
     jump = 1
     dir: str = '../min_data_crypto/'
-    time_class = '1m'
+    time_class = '15m'
     month = '2023-11'
     data_path = dir + commodity + "-" + time_class + "-" + month + '-washed.csv'
     parameter_dict = {'jump': jump, 'commodity': commodity, 'short_symb': 'ma5', 'long_symb': 'ma10'}
@@ -374,9 +353,14 @@ if __name__ == '__main__':
     index = min_data_1['close_time'].map(lambda x: pd.to_datetime(x, unit='ms'))
     min_data_1.index = index
     trade_management = TradeManangement(commodity)
+    trend_management = TrendManagement()
+    plot = Plot()
     board_point = BoardPoint()
+    plot.init_fig(min_data_1)
+
     min_data_strategy = MinDataStrategy(min_data_1, parameter_dict)
-    min_data_strategy.main_calculate(trade_management, board_point)
+    min_data_strategy.main_calculate(trade_management, board_point, plot, trend_management)
+    plot.show()
     trade_record, daily_record, trade_statistic_ = trade_management.data_collect()
     excel_write(trade_record, trade_statistic_, daily_record)
 

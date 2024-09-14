@@ -1,8 +1,4 @@
-"""
-趋势线应当紧贴趋势，否则作用将降低，纯碰运气。
-写一个新的类，重点刻画趋势
-另外，之前的止盈止损中没有加入基于资金的止损。当总资金亏损超过一定数额时就应当停下。
-"""
+
 from min_strategy.TrendLine import TrendLine
 
 
@@ -36,7 +32,7 @@ class TrendManagement:
         self.__in_up_trend = 0
         self.__in_down_trend = 0
 
-    def trend_initial(self, min_data, board_point, iloc):
+    def trend_initial(self, min_data, board_point, iloc, plot):
         if len(board_point['max_min_price']) >= 3 and self.__in_up_trend == 0:
             if (min_data['close'][iloc] > board_point['max_min_price'][-2]) \
                     and (board_point['max_min_price'][-1] > board_point['max_min_price'][-3]) \
@@ -47,15 +43,21 @@ class TrendManagement:
                 trend_direc = 1
                 start_index = board_point['max_min_iloc'][-3]
                 start_daily_index = self.iloc_to_daily_iloc(board_point['max_min_iloc'][-3], min_data)
+                start_daytime = list(min_data.index)[start_daily_index]
+                end_daily_index = self.iloc_to_daily_iloc(board_point['max_min_iloc'][-1], min_data)
+                end_daytime = list(min_data.index)[end_daily_index]
                 trend_lenth = iloc - start_index
                 trend_last_high_low = min_data['close'][iloc]
                 trend_datetime = list(min_data.index)[self.iloc_to_daily_iloc(start_index, min_data)]
                 trend_line = TrendLine(board_point['max_min_iloc'][-3], board_point['max_min_iloc'][-1], board_point['max_min_price'][-3], board_point['max_min_price'][-1],
-                                       'up', list(min_data.index)[self.iloc_to_daily_iloc(board_point['max_min_iloc'][-3], min_data)], list(min_data.index)[self.iloc_to_daily_iloc(board_point['max_min_iloc'][-1], min_data)])
+                                       'up', start_daytime, end_daytime)
                 wave_chg1 = board_point['wave_volatility'][-2]
                 wave_gradient1 = wave_chg1 / board_point['wave_len'][-2]
                 wave_chg2 = min_data['high'][iloc] - board_point['max_min_price'][-1]
                 wave_gradient2 = wave_chg2 / (iloc - board_point['max_min_iloc'][-1])
+
+                plot.add_trace([start_daytime, end_daytime], [board_point['max_min_price'][-3], board_point['max_min_price'][-1]], 1)
+
                 self.__last_cross_up_point = board_point['cross_iloc'][-1]
                 self.__last_up_trend = Trend(trend_direc, trend_lenth, trend_chg, start_index, start_daily_index, trend_last_high_low, trend_line, trend_datetime, in_trend=1)
                 self.__last_up_trend.wave_chg.extend([wave_chg1, wave_chg2])
@@ -71,6 +73,9 @@ class TrendManagement:
                 trend_direc = -1
                 start_index = board_point['max_min_iloc'][-3]
                 start_daily_index = self.iloc_to_daily_iloc(board_point['max_min_iloc'][-3], min_data)
+                start_daytime = list(min_data.index)[start_daily_index]
+                end_daily_index = self.iloc_to_daily_iloc(board_point['max_min_iloc'][-1], min_data)
+                end_daytime = list(min_data.index)[end_daily_index]
                 trend_lenth = iloc - start_index
                 trend_last_high_low = min_data['close'][iloc]
                 trend_datetime = list(min_data.index)[self.iloc_to_daily_iloc(start_index, min_data)]
@@ -78,13 +83,15 @@ class TrendManagement:
                 wave_gradient1 = wave_chg1 / (board_point['cross_iloc'][-2] - board_point['max_min_iloc'][-2])
                 wave_chg2 = min_data['low'][iloc] - board_point['max_min_price'][-1]
                 wave_gradient2 = wave_chg2 / (iloc - self.iloc_to_daily_iloc(board_point['cross_iloc'][-1], min_data))
+
                 self.__last_cross_up_point = board_point['cross_iloc'][-1]
                 trend_line = TrendLine(board_point['max_min_iloc'][-3], board_point['max_min_iloc'][-1], board_point['max_min_price'][-3], board_point['max_min_price'][-1],
-                                       'down', list(min_data.index)[self.iloc_to_daily_iloc(board_point['max_min_iloc'][-3], min_data)], list(min_data.index)[self.iloc_to_daily_iloc(board_point['max_min_iloc'][-1], min_data)])
+                                       'down', start_daytime, end_daytime)
                 self.__last_down_trend = Trend(trend_direc, trend_lenth, trend_chg, start_index, start_daily_index, trend_last_high_low, trend_line, trend_datetime, in_trend=1)
                 self.__last_down_trend.wave_chg.extend([wave_chg1, wave_chg2])
                 self.__last_down_trend.wave_gradient.extend([wave_gradient1, wave_gradient2])
                 self.__in_down_trend = 1
+                plot.add_trace([start_daytime, end_daytime], [board_point['max_min_price'][-3], board_point['max_min_price'][-1]], -1)
 
     def in_trend(self, min_data, board_point, iloc):
         self.trend_end(min_data, iloc)
