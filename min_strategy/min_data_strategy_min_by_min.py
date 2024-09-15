@@ -142,14 +142,14 @@ class MinDataStrategy:
     def open_short_strategy(self, trend_management, iloc):
         open_bool = 0
         open_price = 0
-        if len(board_point.board_point['cross_direc']) >= 2:
-            last_low = board_point.board_point['max_min_price'][-2]
-            last_high = board_point.board_point['max_min_price'][-1]
-            if board_point.board_point['cross_direc'][-1] == -1 and (self.__min_data['close'][iloc] < last_low) and (self.__min_data['open'][iloc] > last_low) \
-                    and abs(self.__min_data['real_body'][iloc]) > 0.3 * (last_high - last_low) and (last_high - last_low) > 12 * jump:
-                    open_bool = 1
-                    open_price = self.__min_data['close'][iloc]
-                    self.__stop_loss_price_short = round(0.5*(last_high - last_low) + last_low, self.__round_num)
+        # if len(board_point.board_point['cross_direc']) >= 2:
+        #     last_low = board_point.board_point['max_min_price'][-2]
+        #     last_high = board_point.board_point['max_min_price'][-1]
+        #     if board_point.board_point['cross_direc'][-1] == -1 and (self.__min_data['close'][iloc] < last_low) and (self.__min_data['open'][iloc] > last_low) \
+        #             and abs(self.__min_data['real_body'][iloc]) > 0.3 * (last_high - last_low) and (last_high - last_low) > 12 * jump:
+        #             open_bool = 1
+        #             open_price = self.__min_data['close'][iloc]
+        #             self.__stop_loss_price_short = round(0.5*(last_high - last_low) + last_low, self.__round_num)
         up_trend = trend_management.get_last_up_trend()
         down_trend = trend_management.get_last_down_trend()
         if down_trend is not None and iloc-1 > down_trend.trend_start_daily_index and board_point.board_point['cross_direc'][-1] == -1:
@@ -283,9 +283,6 @@ class MinDataStrategy:
             return False, None, 0
 
     def close_strategy(self,  iloc, trade_management, trend_management):
-        # 当务之急是利用趋势线做几个平仓策略。
-        # 如果是顺趋势线方向开仓，趋势线被破时就应当出场。
-        # 如果是利用趋势线被突破后的阻挡效应，则这条趋势线被重新突破时止损，或者临近的上升趋势线被突破后止损
         direction = trade_management.get_last_direction()
         close_long_num, close_long_price = self.close_long_strategy(trend_management, trade_management, iloc)
         close_short_num, close_short_price = self.close_short_strategy(trend_management, trade_management, iloc)
@@ -296,7 +293,7 @@ class MinDataStrategy:
         else:
             return 0, None, 0
 
-    def open_close_model(self, trade_management, trend_management, i):
+    def open_close_model(self, trade_management, trend_management, i, plot):
         open_bool = 0
         close_num = 0
         close_price = 0
@@ -308,7 +305,9 @@ class MinDataStrategy:
         else:
             trade_management.calc_float_profit_loss(self.__min_data.iloc[i, :])
             close_num, direction, close_price = self.close_strategy(i, trade_management, trend_management)
-        trade_management.trade_management(self.__min_data.iloc[i, :], open_bool, close_num, direction, self.new_day(list(self.__min_data.index)[i]), datetime, close_price, open_price)
+        trade_management.trade_management(self.__min_data.iloc[i, :], open_bool, close_num, direction,
+                                          self.new_day(list(self.__min_data.index)[i]), datetime, close_price,
+                                          open_price, plot)
 
     def main_calculate(self, trade_management_, board_point_, plot, trend_management):
         index_list = list(self.__min_data.index)
@@ -328,7 +327,7 @@ class MinDataStrategy:
                     if self.__min_data[self.__short_symb][i-1] > self.__min_data[self.__long_symb][i-1] and self.__min_data[self.__short_symb][i] <= self.__min_data[self.__long_symb][i]:
                         board_point_.set_board_point(-1, self.__min_data['iloc'][i], self.__min_data)
 
-                self.open_close_model(trade_management_, trend_management, i)
+                self.open_close_model(trade_management_, trend_management, i, plot)
             trend_management.trend_initial(self.__min_data, board_point.board_point, i, plot)
             trend_management.in_trend(self.__min_data, board_point.board_point, i)
             self.set_daily_high_low(i)
@@ -352,15 +351,15 @@ if __name__ == '__main__':
     min_data_1['contract'] = [commodity] * min_data_1.shape[0]
     index = min_data_1['close_time'].map(lambda x: pd.to_datetime(x, unit='ms'))
     min_data_1.index = index
-    trade_management = TradeManangement(commodity)
-    trend_management = TrendManagement()
-    plot = Plot()
+    trade_management_ = TradeManangement(commodity)
+    trend_management_ = TrendManagement()
+    plot_ = Plot()
     board_point = BoardPoint()
-    plot.init_fig(min_data_1)
+    plot_.init_fig(min_data_1)
 
     min_data_strategy = MinDataStrategy(min_data_1, parameter_dict)
-    min_data_strategy.main_calculate(trade_management, board_point, plot, trend_management)
-    plot.show()
-    trade_record, daily_record, trade_statistic_ = trade_management.data_collect()
+    min_data_strategy.main_calculate(trade_management_, board_point, plot_, trend_management_)
+    plot_.show()
+    trade_record, daily_record, trade_statistic_ = trade_management_.data_collect()
     excel_write(trade_record, trade_statistic_, daily_record)
 

@@ -81,12 +81,15 @@ class TradeManangement:
         self.float_loss(min_data_slice['low']) if self.__direction[-1] == 'buy' else self.float_loss(min_data_slice['high'])
         self.float_profit(min_data_slice['high']) if self.__direction[-1] == 'buy' else self.float_profit(min_data_slice['low'])
 
-    def trade_management(self, min_data_slice, open_bool, close_num, direction, new_day_bool, datetime, close_price, open_price):
+    def trade_management(self, min_data_slice, open_bool, close_num, direction, new_day_bool, datetime, close_price,
+                         open_price, plot):
         if open_bool == 1 and self.__open_close_flag == 0:
             order = Order(datetime, open_price, 1, direction, min_data_slice['contract'], min_data_slice['iloc'])
+            plot.add_open(datetime, open_price, direction)
             self.open_(order)
         if close_num != 0 and self.__open_close_flag == 1 and direction != self.__direction[-1]:
             order = Order(datetime, close_price, 1, direction, min_data_slice['contract'], min_data_slice['iloc'])
+            plot.add_close(datetime, open_price, self.__direction[-1])
             self.__close_num.append(int(str(close_num)))
             self.close_(order)
             self.reset_float()
